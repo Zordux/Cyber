@@ -1,11 +1,26 @@
 #!/bin/bash
-echo "PLEASE DO NOT RUN THIS ON YOUR PERSONAL PC"
-echo "PLEASE DO NOT RUN THIS ON YOUR PERSONAL PC"
-echo "PLEASE DO NOT RUN THIS ON YOUR PERSONAL PC"
-sleep 3s
-echo "MAKE SURE TO HAVE A TXT FILE NAMED users.txt INSIDE THE SAME DIR AS THE SCRIPT"
-sleep 5s
 
+#Checks if the script was ran on sudo or root 
+if [ "$EUID" -ne 0 ]
+  then echo "Run script as root or sudo"
+  exit
+fi
+
+#Checks if users.txt is in the same dir as the script
+File="users.txt"
+if [ ! -f "$File" ]; then  
+  echo "$File does not exist. Please make the file and put all users you want to add and all users on your readme list(Make sure admins and main user are in there)"  
+  exit
+fi  
+
+#Checks of dbus is on the system and if not then download it
+if ! sudo apt list --installed | grep -q "dbus-x11"; then
+  echo "dbus-x11 is not installed. Installing..."
+  sudo apt-get install dbus-x11
+fi
+#Sets temp file for checking if the new gnome-terminal is done
+fifo="/tmp/terminal_fifo"
+clear
 mainScreen(){
 echo ' ____             __                         ____          __                       __       '
 echo '/\  _ \          /\ \                       /\  _ \       /\ \__         __        /\ \__    '
@@ -19,7 +34,7 @@ echo '               \/__/                                                      
 echo
 echo 'Ubuntu CyberPatriot Script'
 echo
-echo 'By Roman, with blood sweat and tears'
+echo 'By Roman'
 echo ""
 runner=$(whoami)
 echo "Wellcome $runner"
@@ -40,14 +55,15 @@ esac
 }
 
 autoscript(){
-echo "Checking if system users are on file..."
+echo "Checking system for unauthorized users..."
 sleep 2s
-#setting system users into sysusers array and users from a list into ckusers
+
+#Sets local system users into a array and users from the users list into another array
 mapfile -t sysusers < <(cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1)
 mapfile -t ckusers < users.txt
 
 not_found=()
-#checking for users on system but not on list
+#Checks for users that are on the local system but not on the users list
 for user in "${sysusers[@]}"; do
     if [[ " ${ckusers[*]} " == *" $user "* ]]; then
         echo "Match: $user"
@@ -56,7 +72,8 @@ for user in "${sysusers[@]}"; do
         echo "Intruder: $user"
     fi
 done
-#delelteing user on system but not on list option
+
+#Asks to keep or remove a user that was found on the system but not in the users list
 if [ ${#not_found[@]} -gt 0 ]; then
     for baduser in "${not_found[@]}"; do
         echo "$baduser was not in your list. Delete them? y/n"
@@ -69,21 +86,22 @@ else
 echo no Intruders
 fi
 
-echo "Checking if file users are on the system..."
+echo "Checking if users on users list are on the system..."
 sleep 2s
-#updateing system users list just in case
+
+#Updates the system users list
 mapfile -t sysusers < <(cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1)
 
 missing_users=()
 
-#Checking if users on list are on system
+#Checks if users list users are on the system
 for user in "${ckusers[@]}"; do
     if [[ " ${sysusers[*]} " != *" $user "* ]]; then
         echo "Not on system: $user"
         missing_users+=("$user")
     fi
 done
-#add user on list to system
+#Asks to add a user that was found on the users list but not on the system
 if [ ${#missing_users[@]} -gt 0 ]; then
     for listuser in "${missing_users[@]}"; do
         echo "$listuser was found in your list but not on the system. Add them? y/n"
@@ -97,20 +115,24 @@ echo all users are on system
 fi
 sleep 2s
 clear
-#updateing system users list just in case
+#Updates the system users list
 mapfile -t sysusers < <(cut -d: -f1,3 /etc/passwd | egrep ':[0-9]{4}$' | cut -d: -f1)
 
 echo "Changing every users password except yours..."
 echo whats your username?
 read input
+echo "What password do you want to give the users"
+read password
 sleep 3s
-#checks each user and changes there password except mains users
+
+#Changes passwords for all users on the system except for the main users
 for user in "${sysusers[@]}"; do
     if [ "$user" == "$input" ]; then
         echo "Found you"
     else
         echo "Changing password for user: $user"
-        echo "$user:thisismynewpassword" | sudo chpasswd
+        echo "$user:$password" | sudo chpasswd
+        echo "Changed"
     fi
 done
 
@@ -122,14 +144,15 @@ echo "Looking for admins"
 echo whats your username?
 read input
 sleep 2s
-#finding all admins
+
+#Finds all admins on the system
 sudoers_users=$(grep -E '^(%|[^#]+)\s+ALL=\(ALL:\) ALL' /etc/sudoers | awk '{print $1}' | tr -d ':')
 sudo_group_users=$(grep '^sudo:' /etc/group | cut -d ':' -f 4)
 
 all_admin_users="$sudoers_users $sudo_group_users"
 admin_users=($(echo "$all_admin_users" | tr ',' '\n'))
 
-#Asks if should be a admin
+#Asks if a user should be a admin
 for admin_user in "${admin_users[@]}"; do
     if [ "$admin_user" == "$input" ]; then
      echo "Found  you!"
@@ -215,72 +238,83 @@ done
 echo "Groups done..."
 sleep 2s
 clear
-echo "Turnning on firewall"
-echo `sudo apt install ufw -y`
-sudo ufw enable
 
+#Installing and turning on firewall
+mkfifo "$fifo"
+echo "Turnning on firewall"
+gnome-terminal -- bash -c "sudo apt install ufw; sudo ufw enable; sleep 3; echo 'Done' > $fifo"
+read < "$fifo"
 echo "Firewall has been turned on!!!"
 sleep 3s
 clear
 
 echo "Now go fix the system updates type y when your done"
 read input
-
 clear
 
 echo "Now go fix firefox type y when your done"
 read input
-
 clear
 
+mkfifo "$fifo"
+#Installing updates
 echo "Running full updates"
-echo `sudo apt install full-update -y && sudo apt upgrade -y`
-
+mkfifo "$fifo"
+gnome-terminal -- bash -c "sudo apt-get update -y; sudo apt upgrade -y; sleep 3; echo 'Done' > $fifo"
+read < "$fifo"
 clear
 
-echo "Running ssh"
-sudo systemctl start sshd.service
-sudo systemctl start ssh.service
-
+mkfifo "$fifo"
+#Turning ssh on
+echo "Starting ssh"
+gnome-terminal -- bash -c "sudo systemctl start sshd.serviceg; sudo systemctl start ssh.service; sleep 3; echo 'Done' > $fifo"
+read < "$fifo"
 clear
 
 echo "Permit Root Login is not done"
-echo "Im not sure how to put text into a file useing in code"
-#Im not sure how to put text into a file useing in code
-sleep 2s
 echo "Removing auto login and guest is not done"
-echo "Im not sure how to put text into a file useing in code"
-#Im not sure how to put text into a file useing in code
 sleep 3s
-
 clear
 
+mkfifo "$fifo"
+#Installing and setting auditd
 echo "Setting Auditd"
 sleep 2s
-echo `sudo apt install auditd -y`
-echo `sudo auditctl -e 1`
-
+gnome-terminal -- bash -c "sudo apt install auditd -y; sudo auditctl -e 1; sleep 3; echo 'Done' > $fifo"
+read < "$fifo"
 echo "Auditd DONE"
 sleep 2s
-
 clear
 
+mkfifo "$fifo"
+#Installing and setting up libpam
+echo "Setting libpam"
+gnome-terminal -- bash -c "sudo apt-get install libpam-cracklib; sleep 3; echo 'Done' > $fifo"
+read < "$fifo"
+
+echo `sed -i 's/PASS_MAX_DAYS.*/PASS_MAX_DAYS   90/' /etc/login.defs`
+
+echo `sed -i 's/PASS_MIN_DAYS.*/PASS_MIN_DAYS   10/' /etc/login.defs`
+
+echo `sed -i 's/PASS_WARN_AGE.*/PASS_WARN_AGE   7/' /etc/login.defs`
+
+echo "Libpam Done!"
+sleep 2s
+clear
+
+mkfifo "$fifo"
+#Installing and setting up anti virus software
 echo "Installing anti virus software"
-
-echo `sudo apt-get install rkhunter -y`
-echo `rkhunter --update`
-echo `rkhunter -c --sk`
-echo `sudo apt-get install clamav -y`
-echo `sudo freshclam`
-echo `sudo clamscan –i –r --remove=yes `
-
+gnome-terminal -- bash -c "sudo apt-get install rkhunter -y; rkhunter --update; rkhunter -c --sk; sudo apt-get install clamav -y; sudo freshclam; sudo freshclam; sudo clamscan –i –r --remove=yes; sleep 3; echo 'Done' > $fifo"
+read < "$fifo"
 echo "Anti virus DONE!!!"
 sleep 3s
-
 clear
 
+#End of script
 echo "ALL DONE SCRIPT WILL END !!!"
 sleep 4s
+clear
 mainScreen
 }
 
