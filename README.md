@@ -27,7 +27,7 @@ First download git
 ```
 sudo apt install git
 ```
-Next download the script useing git
+Next download the script using git
 ```
 sudo git clone https://github.com/Zordux/Patriot-Guard
 ```
@@ -41,7 +41,7 @@ sudo chmod +x .\script.sh
 ```
 Lastly run the script
 ```
-sudo bash \,script.sh
+sudo bash .\script.sh
 ```
 
 
