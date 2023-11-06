@@ -25,7 +25,7 @@ https://www.uscyberpatriot.org/Documents/CHAPTER%204.pdf
 ## Installation
 First download git
 ```
-Sudo apt install git
+sudo apt install git https://github.com/Zordux/Patriot-Guard
 ```
 Next download the script useing git
 ```
