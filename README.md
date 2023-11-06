@@ -25,17 +25,23 @@ https://www.uscyberpatriot.org/Documents/CHAPTER%204.pdf
 ## Installation
 First download git
 ```
-sudo apt install git https://github.com/Zordux/Patriot-Guard
+sudo apt install git
 ```
 Next download the script useing git
 ```
-sudo git clone
+sudo git clone https://github.com/Zordux/Patriot-Guard
+```
+Make a users.txt file and paste the list of users on your check list even the ones asked to add
+```
+touch users.txt
 ```
 Now give the file permission to run
 ```
 sudo chmod +x .\script.sh
-``` 
-Run the script
 ```
-sudo bash script.sh
+Lastly run the script
 ```
+sudo bash \,script.sh
+```
+
+
