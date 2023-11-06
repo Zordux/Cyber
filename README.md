@@ -11,6 +11,7 @@
                     A cyber patriot ubuntu script for learning and inspiration.
 </pre>
 </div>
+
 # WARNING
 
 Do not download or use this script for Cyber Patriot competitions as it violates their rules, but feel free to utilize it for learning and inspiration.
