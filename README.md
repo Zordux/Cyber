@@ -1,6 +1,5 @@
-<div align="center">
+
 ![image](https://github.com/Zordux/Patriot-Guard/assets/87186832/d6794def-8bdb-408d-8a3e-a2444d5bf334)
-</div>
 
 # WARNING
 
